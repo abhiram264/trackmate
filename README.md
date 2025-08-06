@@ -1,42 +1,35 @@
- 
 # TrackMate - AI-Powered Lost & Found System
 
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org)
 [![SQLModel](https://img.shields.io/badge/SQLModel-Latest-red.svg)](https://sqlmodel.tiangolo.com)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A comprehensive lost and found tracking system designed for university campuses, powered by AI image matching and natural language processing.
+A comprehensive lost and found tracking system designed for university campuses with JWT authentication and RESTful API.
 
-## 🚀 Features
+## 🚀 Features Implemented
 
 - **🔐 JWT Authentication**: Secure token-based authentication with student registry verification
-- **📦 Lost Items Management**: Create, search, update, and manage lost item reports
-- **🔍 Found Items Management**: Submit and track found items with detailed information
-- **⚖️ Claims System**: Structured claim process with admin approval workflow
-- **🖼️ Image Upload**: Support for multiple image uploads per item
-- **🔎 Advanced Search**: Filter by category, location, date, status, and keywords
-- **👨‍💼 Admin Dashboard**: Comprehensive admin tools for managing claims and items
-- **📚 Auto-Generated Docs**: Complete OpenAPI/Swagger documentation
+- **📦 Lost Items Management**: Create, search, and manage lost item reports
+- **🔍 Found Items Management**: Submit and track found items
+- **⚖️ Claims System**: Structured claim process for item recovery
+- **🖼️ Image Upload System**: Support for item image uploads
+- **📚 Auto-Generated API Docs**: Interactive Swagger UI documentation
 - **🔒 Security**: Password hashing, JWT tokens, input validation
 
 ## 🛠️ Tech Stack
 
 - **Backend**: FastAPI (Python 3.11+)
-- **Database**: SQLite (development) / PostgreSQL (production)
-- **ORM**: SQLModel (SQLAlchemy + Pydantic)
+- **Database**: SQLite with SQLModel ORM
 - **Authentication**: JWT with bcrypt password hashing
-- **Validation**: Pydantic v2 with comprehensive schemas
+- **Validation**: Pydantic v2 schemas
 - **Documentation**: Automatic OpenAPI/Swagger generation
-- **File Upload**: Multi-part form data with image validation
-- **CORS**: Cross-origin resource sharing enabled
+- **File Upload**: Multi-part form data support
 
 ## 📋 Prerequisites
 
 - Python 3.11 or higher
 - pip (Python package manager)
 - Git (for cloning)
-- A web browser (for testing via Swagger UI)
 
 ## ⚡ Quick Start
 
@@ -65,9 +58,7 @@ pip install -r requirements.txt
 ```bash
 # Copy environment template
 cp .env.example .env
-
-# Edit .env file with your settings (optional for development)
-# Default settings work out of the box!
+# Default settings work out of the box for development!
 ```
 
 ### 3. Initialize Database
@@ -77,7 +68,7 @@ cp .env.example .env
 python init_db.py
 ```
 
-You should see:
+Expected output:
 ```
 🔧 Creating database tables...
 ✅ Test student data created successfully!
@@ -92,30 +83,23 @@ You should see:
 ```bash
 # Start development server
 uvicorn app.main:app --reload
-
-# Server will be available at:
-# 🌐 http://localhost:8000
-# 📚 API Docs: http://localhost:8000/docs
-# 📖 ReDoc: http://localhost:8000/redoc
 ```
 
-## 🧪 API Testing Guide
+Server will be available at:
+- 🌐 **Main API**: http://localhost:8000
+- 📚 **API Documentation**: http://localhost:8000/docs
+- 📖 **Alternative Docs**: http://localhost:8000/redoc
+
+## 🧪 Testing the API
 
 ### Step 1: Access API Documentation
 
-Open your browser and go to: **http://localhost:8000/docs**
+Open http://localhost:8000/docs in your browser to see the interactive Swagger UI.
 
-You'll see the interactive Swagger UI with all available endpoints organized by categories:
-- 🔐 **Authentication** (6 endpoints)
-- 📦 **Lost Items** (8 endpoints) 
-- 🔍 **Found Items** (8 endpoints)
-- ⚖️ **Claims** (7 endpoints)
-- 🖼️ **Images** (4 endpoints)
-
-### Step 2: Test Authentication Flow
+### Step 2: Test Authentication (✅ TESTED)
 
 #### A. User Registration
-1. **Find**: `POST /api/v1/auth/signup`
+1. **Endpoint**: `POST /api/v1/auth/signup`
 2. **Click**: "Try it out"
 3. **Request Body**:
 ```json
@@ -126,11 +110,10 @@ You'll see the interactive Swagger UI with all available endpoints organized by 
   "full_name": "John Doe"
 }
 ```
-4. **Click**: "Execute"
-5. **Expected**: `201 Created` with user details
+4. **Expected Result**: ✅ `201 Created` with user details
 
 #### B. User Login
-1. **Find**: `POST /api/v1/auth/login`
+1. **Endpoint**: `POST /api/v1/auth/login`
 2. **Request Body**:
 ```json
 {
@@ -138,307 +121,241 @@ You'll see the interactive Swagger UI with all available endpoints organized by 
   "password": "password123"
 }
 ```
-3. **Execute** and **copy the `access_token`** from response
+3. **Expected Result**: ✅ `200 OK` with JWT tokens
+4. **⚠️ Important**: Copy the `access_token` for next steps
 
-#### C. Authorize for Protected Endpoints
-1. **Click**: 🔒 **"Authorize"** button at top of page
-2. **Enter**: `Bearer YOUR_ACCESS_TOKEN_HERE`
+#### C. Authorization Setup
+1. **Click**: 🔒 **"Authorize"** button at top of Swagger UI
+2. **Enter**: `Bearer YOUR_ACCESS_TOKEN_HERE` (include "Bearer " prefix)
 3. **Click**: "Authorize" then "Close"
-4. **Verify**: Lock icon changes to closed 🔒
+4. **Verify**: Lock icon shows closed 🔒
 
-### Step 3: Test Core Functionality
+#### D. Get Current User Profile
+1. **Endpoint**: `GET /api/v1/auth/me`
+2. **Expected Result**: ✅ `200 OK` with your user information
 
-#### 📦 Lost Items Management
-
-**Create Lost Item:**
+#### E. Update User Profile (✅ TESTED - FIXED)
+1. **Endpoint**: `PUT /api/v1/auth/profile`
+2. **Request Body**:
 ```json
 {
-  "title": "Lost iPhone 13 Pro",
-  "description": "Black iPhone 13 Pro with cracked screen protector, found near library",
+  "phone": "123-456-7890",
+  "bio": "Test user for TrackMate API"
+}
+```
+3. **Expected Result**: ✅ `200 OK` with updated profile
+4. **Note**: Fixed - User model now includes phone and bio fields
+
+### Step 3: Test Core Endpoints (Ready for Testing)
+
+#### 📦 Lost Items Management
+**Create Lost Item**: `POST /api/v1/lost-items/`
+```json
+{
+  "title": "Lost iPhone 13",
+  "description": "Black iPhone 13 Pro with cracked screen protector",
   "category": "electronics",
-  "location_lost": "Main Library 2nd Floor",
+  "location_lost": "Library 2nd Floor",
   "date_lost": "2025-08-06T14:30:00",
   "contact_info": "john.doe@university.edu",
-  "reward_offered": "$50 reward"
+  "reward_offered": "$50"
 }
 ```
 
-**Test Endpoints:**
-- `GET /api/v1/lost-items/` - List all items (with pagination)
+**Other Endpoints Available**:
+- `GET /api/v1/lost-items/` - List all items
 - `GET /api/v1/lost-items/{id}` - Get specific item
 - `PUT /api/v1/lost-items/{id}` - Update item
 - `GET /api/v1/lost-items/my-items/` - Your items only
-- `PATCH /api/v1/lost-items/{id}/status?new_status=claimed` - Update status
 
-#### 🔍 Found Items Management
-
-**Create Found Item:**
+#### 🔍 Found Items Management  
+**Create Found Item**: `POST /api/v1/found-items/`
 ```json
 {
-  "title": "Found Samsung Galaxy S21",
-  "description": "Samsung Galaxy S21 in blue protective case, found in cafeteria",
-  "category": "electronics", 
-  "location_found": "Student Cafeteria",
-  "date_found": "2025-08-06T12:00:00",
-  "current_location": "Campus Security Office",
-  "handover_instructions": "Contact security between 9 AM - 5 PM, bring student ID"
+  "title": "Found Samsung Galaxy",
+  "description": "Samsung Galaxy S21 in blue case",
+  "category": "electronics",
+  "location_found": "Cafeteria",
+  "date_found": "2025-08-06T16:00:00",
+  "current_location": "Security Office",
+  "handover_instructions": "Contact security 9-5 PM"
 }
 ```
 
-**Test Endpoints:**
-- `GET /api/v1/found-items/available/` - Only available items
-- `PUT /api/v1/found-items/{id}` - Update found item
-- `GET /api/v1/found-items/my-items/` - Items you found
-
 #### ⚖️ Claims System
-
-**Create Claim:**
+**Create Claim**: `POST /api/v1/claims/`
 ```json
 {
   "found_item_id": 1,
-  "claim_reason": "This is my Samsung Galaxy S21. I lost it yesterday in the cafeteria around lunch time. The blue case has my initials 'JD' written on the back in permanent marker.",
-  "contact_info": "john.doe@university.edu, Phone: (555) 123-4567"
+  "claim_reason": "This is my Samsung Galaxy. Lost it yesterday in cafeteria.",
+  "contact_info": "john.doe@university.edu, 123-456-7890"
 }
 ```
 
-**Admin Actions** (requires admin user):
-- `GET /api/v1/claims/pending/` - Pending claims
-- `PUT /api/v1/claims/{id}/approve` - Approve claim
-- `PUT /api/v1/claims/{id}/reject` - Reject with reason
-
 #### 🖼️ Image Upload
+**Upload Image**: `POST /api/v1/images/upload`
+- **Parameters**: 
+  - `file`: Select image file (.jpg, .png, .webp)
+  - `item_id`: ID of lost/found item
+  - `item_type`: "lost" or "found"
 
-**Upload Image:**
-1. **Endpoint**: `POST /api/v1/images/upload`
-2. **Parameters**:
-   - `file`: Select a .jpg/.png image file
-   - `item_id`: ID of your lost/found item
-   - `item_type`: "lost" or "found"
-3. **Execute**
+## 📊 Current System Status
 
-### Step 4: Advanced Testing
+### ✅ Completed & Working
+- [x] JWT Authentication system
+- [x] User registration with student verification
+- [x] User login and token generation
+- [x] Protected endpoints with authorization
+- [x] User profile management
+- [x] Database initialization with test data
+- [x] API documentation generation
+- [x] Error handling and validation
 
-#### Search & Filtering
+### 🔧 Ready for Testing
+- [ ] Lost items CRUD operations
+- [ ] Found items CRUD operations
+- [ ] Claims management system
+- [ ] Image upload functionality
+- [ ] Search and filtering
+- [ ] Admin approval workflows
 
-Test search functionality with query parameters:
-
-**Lost Items Search:**
-```
-GET /api/v1/lost-items/?search=iPhone&category=electronics&status=active&page=1&limit=10
-```
-
-**Filter Parameters:**
-- `search`: Keyword search in title/description
-- `category`: electronics, clothing, books, etc.
-- `status`: active, claimed, resolved, expired
-- `location`: Location-based filtering
-- `date_from` / `date_to`: Date range filtering
-- `page` / `limit`: Pagination
-
-#### Error Testing
-
-Test error handling:
-1. **401 Unauthorized**: Try protected endpoints without authorization
-2. **404 Not Found**: Request non-existent item `GET /api/v1/lost-items/99999`
-3. **422 Validation Error**: Send invalid data (empty required fields)
-4. **403 Forbidden**: Try admin endpoints with regular user
-
-## 📊 Test Data Overview
-
-The system includes pre-configured test data:
-
-### Test Student Accounts
-| Email | Student ID | Department | Use Case |
-|-------|------------|------------|----------|
-| john.doe@university.edu | STU001 | Computer Science | Regular user testing |
-| jane.smith@university.edu | STU002 | Information Technology | Multi-user testing |
-| admin@university.edu | STU003 | Administration | Admin functionality |
-
-### Item Categories
-- `electronics` - Phones, laptops, headphones
-- `clothing` - Jackets, bags, shoes
-- `accessories` - Jewelry, watches, glasses
-- `books` - Textbooks, notebooks
-- `documents` - IDs, certificates, papers
-- `sports` - Equipment, uniforms
-- `bags` - Backpacks, purses, briefcases
-- `jewelry` - Rings, necklaces, bracelets
-- `keys` - Room keys, car keys, keychains
-- `others` - Miscellaneous items
-
-### Item Statuses
-- `active` - Currently lost/found and available
-- `claimed` - Claim submitted but not resolved
-- `resolved` - Successfully returned to owner
-- `expired` - No longer actively tracked
+### 📝 Test Accounts Available
+| Email | Student ID | Password | Purpose |
+|-------|------------|----------|---------|
+| john.doe@university.edu | STU001 | Any password | Regular user testing |
+| jane.smith@university.edu | STU002 | Any password | Multi-user testing |
+| admin@university.edu | STU003 | Any password | Admin features |
 
 ## 🔧 Configuration
 
 ### Environment Variables (.env)
-
 ```env
-# Database
 DATABASE_URL=sqlite:///./trackmate.db
-
-# Security
-SECRET_KEY=your-super-secret-key-change-in-production
+SECRET_KEY=TrackMate_SuperSecure_Key_2025_Change_This_In_Production_xyz789abc123def456
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
-
-# File Upload
-UPLOAD_DIRECTORY=uploaded_images
-MAX_FILE_SIZE=10485760  # 10MB
-ALLOWED_EXTENSIONS=.jpg,.jpeg,.png,.webp
-
-# Application
 DEBUG=true
 ENVIRONMENT=development
 ```
 
-### Database Schema
-
-The system uses 6 main tables:
-- **users** - User accounts and authentication
-- **student_registry** - Valid student database
-- **lost_items** - Lost item reports
-- **found_items** - Found item submissions  
-- **claims** - Item claim requests
-- **images** - File uploads linked to items
-
-## 📈 API Endpoint Summary
-
-| Category | Endpoints | Description |
-|----------|-----------|-------------|
-| Authentication | 6 | Signup, login, profile, tokens |
-| Lost Items | 8 | CRUD operations, search, status updates |
-| Found Items | 8 | CRUD operations, availability tracking |
-| Claims | 7 | Create, approve, reject, track claims |
-| Images | 4 | Upload, retrieve, item associations |
-| **Total** | **33** | **Comprehensive REST API** |
+### Item Categories Available
+- `electronics` - Phones, laptops, headphones
+- `clothing` - Jackets, bags, shoes  
+- `accessories` - Jewelry, watches, glasses
+- `books` - Textbooks, notebooks
+- `documents` - IDs, certificates
+- `sports` - Equipment, uniforms
+- `bags` - Backpacks, purses
+- `jewelry` - Rings, necklaces
+- `keys` - Room keys, car keys
+- `others` - Miscellaneous items
 
 ## 🔍 Troubleshooting
 
 ### Common Issues
 
-**Import Errors:**
+**ModuleNotFoundError:**
 ```bash
-# Set Python path
-export PYTHONPATH="${PYTHONPATH}:$(pwd)"
-uvicorn app.main:app --reload
+# Run from project root directory
+cd C:\Users\ramab\trackmate
+python init_db.py
 ```
 
 **Database Issues:**
 ```bash
-# Reset database
-rm trackmate.db
+# Reset database if needed
+del trackmate.db  # Windows
+rm trackmate.db   # Mac/Linux
 python init_db.py
 ```
 
-**Permission Errors:**
+**Server Won't Start:**
 ```bash
-# Check file permissions
-ls -la trackmate.db
-chmod 664 trackmate.db
-```
-
-**Port Already in Use:**
-```bash
-# Use different port
+# Check if port 8000 is free
 uvicorn app.main:app --reload --port 8001
 ```
 
-### Debug Mode
-
-Enable detailed logging:
+**Import Errors:**
 ```bash
-# Set debug in .env
-DEBUG=true
-
-# Or run with debug logging
-uvicorn app.main:app --reload --log-level debug
-```
-
-## 🚀 Production Deployment
-
-### Environment Setup
-```env
-DEBUG=false
-ENVIRONMENT=production
-SECRET_KEY=very-long-random-secret-key
-DATABASE_URL=postgresql://user:pass@localhost/trackmate
-ALLOWED_ORIGINS=https://yourdomain.com
-```
-
-### Security Checklist
-- ✅ Change default `SECRET_KEY`
-- ✅ Use PostgreSQL in production
-- ✅ Set strong passwords
-- ✅ Configure CORS origins
-- ✅ Enable HTTPS
-- ✅ Set up proper logging
-- ✅ Configure file upload limits
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Make changes and test thoroughly
-4. Commit: `git commit -m 'Add amazing feature'`
-5. Push: `git push origin feature/amazing-feature`
-6. Open a Pull Request
-
-### Development Workflow
-```bash
-# Setup development environment
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
-
-# Run tests
-pytest
-
-# Start development server
+# Set Python path
+set PYTHONPATH=%PYTHONPATH%;C:\Users\ramab\trackmate
 uvicorn app.main:app --reload
-
-# Check code style
-black app/
-flake8 app/
 ```
+
+## 🗂️ Project Structure
+
+```
+trackmate/
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI application
+│   ├── database.py          # Database configuration
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── deps.py          # Dependencies
+│   │   └── v1/              # API version 1
+│   │       ├── __init__.py
+│   │       ├── auth.py      # ✅ Authentication endpoints
+│   │       ├── lost_items.py
+│   │       ├── found_items.py
+│   │       ├── claims.py
+│   │       └── images.py
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py        # ✅ App configuration
+│   │   └── security.py      # ✅ JWT & password utils
+│   ├── models/              # ✅ Database models
+│   │   ├── __init__.py
+│   │   ├── user.py          # ✅ Fixed with phone/bio fields
+│   │   ├── student_registry.py
+│   │   ├── lost_item.py
+│   │   ├── found_item.py
+│   │   ├── claim.py
+│   │   └── image_model.py
+│   └── schemas/             # ✅ Pydantic schemas
+│       ├── __init__.py
+│       ├── user.py
+│       ├── lost_item.py
+│       ├── found_item.py
+│       ├── claim.py
+│       └── base_schema.py
+├── .env                     # ✅ Environment variables
+├── .env.example             # ✅ Environment template
+├── .gitignore              # ✅ Git ignore rules
+├── init_db.py              # ✅ Database initialization
+├── requirements.txt        # ✅ Dependencies
+└── README.md               # ✅ This file
+```
+
+## 🚀 Next Testing Steps
+
+1. **Test Lost Items Management**
+   - Create, read, update, delete lost items
+   - Test search and filtering functionality
+
+2. **Test Found Items Management**  
+   - Submit found items
+   - Test availability tracking
+
+3. **Test Claims System**
+   - Create claims for found items
+   - Test admin approval workflow
+
+4. **Test Image Upload**
+   - Upload images for items
+   - Verify file handling and storage
+
+5. **Test Edge Cases**
+   - Invalid data validation
+   - Unauthorized access attempts
+   - Non-existent resource requests
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [FastAPI](https://fastapi.tiangolo.com/) - Modern, fast web framework
-- [SQLModel](https://sqlmodel.tiangolo.com/) - SQL databases with Python
-- [Pydantic](https://docs.pydantic.dev/) - Data validation using Python type hints
-- [Uvicorn](https://www.uvicorn.org/) - Lightning-fast ASGI server
-
-## 📞 Support
-
-If you encounter any issues:
-
-1. Check the [Troubleshooting](#-troubleshooting) section
-2. Review API documentation at `/docs`
-3. Check server logs for error details
-4. Verify your environment configuration
-5. Ensure test data is properly initialized
-
-## 🏆 Project Status
-
-- ✅ **Core API**: Complete with 33 endpoints
-- ✅ **Authentication**: JWT-based security system
-- ✅ **Database**: Full schema with relationships
-- ✅ **Documentation**: Auto-generated OpenAPI docs
-- ✅ **File Upload**: Image handling system
-- ✅ **Admin Tools**: Claim management system
-- 🚧 **AI Integration**: Planned for future releases
-- 🚧 **Frontend**: Separate React/Vue.js application planned
+This project is licensed under the MIT License.
 
 ---
 
-**Happy Testing! 🧪✨**
+**Current Status**: Authentication system fully tested ✅ | Core endpoints ready for testing 🧪
 
-For questions or support, please open an issue on GitHub.
+For support or issues, please check the troubleshooting section above.
