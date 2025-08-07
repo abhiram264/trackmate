@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     allowed_extensions_str: str = ".jpg,.jpeg,.png,.webp"
     
     # AI/ML
-    clip_model: str = "clip-ViT-B-32"
+    clip_model: str = "ViT-B/32"  # Changed from "clip-ViT-B-32"
     text_model: str = "all-MiniLM-L6-v2"
     similarity_threshold: float = 0.7
     

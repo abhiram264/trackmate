@@ -56,6 +56,22 @@ def create_test_data():
                 full_name="Admin User",
                 college_name="Test University",
                 department="Administration"
+            ),
+
+            # New students below
+            StudentRegistry(
+                student_id="STU004",
+                email="alice.brown@university.edu",
+                full_name="Alice Brown",
+                college_name="Test University",
+                department="Mathematics"
+            ),
+            StudentRegistry(
+                student_id="STU005",
+                email="bob.johnson@university.edu",
+                full_name="Bob Johnson",
+                college_name="Test University",
+                department="Physics"
             )
         ]
         
@@ -76,6 +92,7 @@ def create_test_data():
         traceback.print_exc()
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     create_test_data()

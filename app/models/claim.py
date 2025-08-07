@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 class Claim(SQLModel,table = True):
     id: Optional[int] = Field(default = None,primary_key=True)
     user_id: int = Field(foreign_key="users.id")
-    found_item_id : int = Field(foreign_key="found_items.id")
+    found_item_id : int = Field(foreign_key="found_item.id")
     claim_reason: str
     status: str = Field(default = "pending")
     verified_by: Optional[int] = Field(default = None,foreign_key="users.id")

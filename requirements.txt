@@ -21,3 +21,9 @@ faiss-cpu>=1.7.4
 scikit-learn>=1.1.0
 opencv-python>=4.6.0
 
+# CLIP dependencies
+torch>=1.12.0
+torchvision>=0.13.0
+clip-by-openai>=1.0
+pillow>=9.2.0
+numpy>=1.21.0

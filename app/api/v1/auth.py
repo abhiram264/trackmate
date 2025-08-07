@@ -25,50 +25,56 @@ router = APIRouter()
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def signup(user_data: UserSignup, db: Session = Depends(get_db)):
     """Register a new user with student email verification"""
-    
-    # Check if user already exists
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
+
+    # Normalize inputs to avoid mismatches
+    user_email = user_data.email.strip().lower()
+    user_student_id = user_data.student_id.strip()
+
+    # Check if user already exists (using normalized email)
+    existing_user = db.query(User).filter(User.email == user_email).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Email already registered"
         )
-    
-    # Verify student is in registry
+
+    # Verify student is in registry with normalized data
     student = db.query(StudentRegistry).filter(
-        StudentRegistry.email == user_data.email,
-        StudentRegistry.student_id == user_data.student_id
+        StudentRegistry.email == user_email,
+        StudentRegistry.student_id == user_student_id
     ).first()
-    
+
     if not student:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Student not found in registry. Please contact admin."
         )
     
-    # Create new user
+    # Create new user with normalized email/student_id
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
-        email=user_data.email,
-        student_id=user_data.student_id,
+        email=user_email,
+        student_id=user_student_id,
         full_name=user_data.full_name,
         hashed_password=hashed_password
     )
-    
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    
+
     return new_user
+
 
 
 @router.post("/login", response_model=TokenResponse)
 async def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     """Authenticate user and return JWT tokens"""
-    
-    # Find user
-    user = db.query(User).filter(User.email == user_credentials.email).first()
-    
+
+    login_email = user_credentials.email.strip().lower()
+
+    user = db.query(User).filter(User.email == login_email).first()
+
     if not user or not verify_password(user_credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -81,18 +87,17 @@ async def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Account is deactivated"
         )
-    
-    # Update last login
+
+    # Update last login time
     user.last_login = datetime.utcnow()
     db.commit()
-    
-    # Create tokens
+
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
     refresh_token = create_refresh_token(data={"sub": user.email})
-    
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -100,6 +105,7 @@ async def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
         expires_in=settings.access_token_expire_minutes * 60,
         user=user
     )
+
 
 
 @router.post("/refresh", response_model=TokenResponse)

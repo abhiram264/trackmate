@@ -69,3 +69,6 @@ htmlcov/
 
 # MyPy
 .mypy_cache/
+
+__pycache__/
+*.pyc

@@ -1,5 +1,12 @@
 """
 Pydantic schemas for API request/response validation
+
+This module aggregates all request and response schemas used throughout the TrackMate API:
+- Authentication and user management
+- Lost and found items
+- Claims workflow
+- Image handling
+- AI/CLIP similarity matching
 """
 
 # User schemas
@@ -9,7 +16,7 @@ from .user import (
     UserUpdate,
     UserResponse,
     TokenResponse,
-    RefreshTokenRequest
+    RefreshTokenRequest,
 )
 
 # Lost item schemas
@@ -18,7 +25,7 @@ from .lost_item import (
     LostItemUpdate,
     LostItemResponse,
     LostItemPublic,
-    PaginatedLostItems
+    PaginatedLostItems,
 )
 
 # Found item schemas
@@ -27,7 +34,7 @@ from .found_item import (
     FoundItemUpdate,
     FoundItemResponse,
     FoundItemPublic,
-    PaginatedFoundItems
+    PaginatedFoundItems,
 )
 
 # Claim schemas
@@ -37,7 +44,7 @@ from .claim import (
     ClaimResponse,
     ClaimApproval,
     ClaimRejection,
-    PaginatedClaims
+    PaginatedClaims,
 )
 
 # Image schemas
@@ -46,7 +53,7 @@ from .image_schema import (
     ImageResponse,
     ImageSearchRequest,
     ImageSearchResult,
-    SimilarImagesResponse
+    SimilarImagesResponse,
 )
 
 # Base schemas
@@ -54,8 +61,27 @@ from .base_schema import (
     MessageResponse,
     ErrorResponse,
     PaginationParams,
-    SearchParams
+    SearchParams,
 )
+
+# CLIP AI schemas
+from .clip_schemas import (
+    EmbeddingRequest,
+    EmbeddingResponse,
+    SimilarityRequest,
+    SimilarityResult,
+    SimilarityResponse,
+    TextSearchRequest,
+    ImageSearchRequest as ClipImageSearchRequest,
+    MatchReviewRequest,
+    MatchReviewResponse,
+    BatchEmbeddingRequest,
+    BatchEmbeddingResponse,
+    EmbeddingStatsResponse,
+)
+
+__version__ = "1.0.0"
+__author__ = "TrackMate Development Team"
 
 __all__ = [
     # User schemas
@@ -70,7 +96,7 @@ __all__ = [
     "LostItemCreate",
     "LostItemUpdate",
     "LostItemResponse",
-    "LostItemPublic", 
+    "LostItemPublic",
     "PaginatedLostItems",
 
     # Found item schemas
@@ -97,8 +123,21 @@ __all__ = [
 
     # Base schemas
     "MessageResponse",
-    "ErrorResponse", 
+    "ErrorResponse",
     "PaginationParams",
     "SearchParams",
-]
 
+    # CLIP AI schemas
+    "EmbeddingRequest",
+    "EmbeddingResponse",
+    "SimilarityRequest",
+    "SimilarityResult",
+    "SimilarityResponse",
+    "TextSearchRequest",
+    "ClipImageSearchRequest",
+    "MatchReviewRequest",
+    "MatchReviewResponse",
+    "BatchEmbeddingRequest",
+    "BatchEmbeddingResponse",
+    "EmbeddingStatsResponse",
+]
