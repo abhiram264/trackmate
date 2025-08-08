@@ -5,7 +5,7 @@ from enum import Enum
 
 class UserRole(str, Enum):
     STUDENT = "student"
-    ADMIN = "admin"
+    ADMIN = "ADMIN"
     STAFF = "staff"
 
 class User(SQLModel, table=True):

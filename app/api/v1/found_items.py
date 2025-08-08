@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
-from typing import List, Optional
+from sqlalchemy import Column, Enum as SQLEnum, or_
+from typing import Optional, List
 from datetime import datetime
 
-# ✅ CORRECT imports:
-from app.models.found_item import FoundItem
+from app.models.found_item import FoundItem, ItemStatus  # Import the Enum
 from app.models.user import User
 from app.schemas.found_item import (
-    FoundItemCreate, FoundItemUpdate, FoundItemResponse, FoundItemPublic,
+    FoundItemCreate,
+    FoundItemUpdate,
+    FoundItemResponse,
     PaginatedFoundItems
 )
 from app.schemas.base_schema import MessageResponse
@@ -16,14 +17,24 @@ from app.database import get_db
 from app.api.deps import get_current_active_user, get_admin_user
 
 router = APIRouter()
+
+
+# Override the FoundItem.status column to store enum values (lowercase text)
+FoundItem.__table__.columns["status"].type = SQLEnum(
+    ItemStatus,
+    name="itemstatus",
+    native_enum=False,
+    values_callable=lambda enum: [e.value for e in enum]
+)
+
+
 @router.post("/", response_model=FoundItemResponse, status_code=status.HTTP_201_CREATED)
 async def create_found_item(
     item_data: FoundItemCreate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """Create a new found item entry"""
-
+    """Create a new found item"""
     new_item = FoundItem(
         title=item_data.title,
         description=item_data.description,
@@ -32,13 +43,12 @@ async def create_found_item(
         date_found=item_data.date_found,
         current_location=item_data.current_location,
         handover_instructions=item_data.handover_instructions,
-        user_id=current_user.id
+        user_id=current_user.id,
+        # status defaults to ItemStatus.ACTIVE.value
     )
-
     db.add(new_item)
     db.commit()
     db.refresh(new_item)
-
     return new_item
 
 
@@ -53,63 +63,59 @@ async def get_found_items(
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """List all found items with search and filtering"""
-
+    """List all found items with filtering"""
     query = db.query(FoundItem)
 
-    # Apply filters
     if search:
         query = query.filter(
             or_(
                 FoundItem.title.ilike(f"%{search}%"),
-                FoundItem.description.ilike(f"%{search}%")
+                FoundItem.description.ilike(f"%{search}%"),
             )
         )
-
     if category:
         query = query.filter(FoundItem.category == category)
-
     if status:
+        # Legacy support: convert "available" to "active"
+        if status == "available":
+            status = ItemStatus.ACTIVE.value
+        if status not in {e.value for e in ItemStatus}:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid status filter: {status}",
+            )
         query = query.filter(FoundItem.status == status)
-
     if location:
         query = query.filter(
             or_(
                 FoundItem.location_found.ilike(f"%{location}%"),
-                FoundItem.current_location.ilike(f"%{location}%")
+                FoundItem.current_location.ilike(f"%{location}%"),
             )
         )
-
     if date_from:
         try:
-            from_date = datetime.fromisoformat(date_from)
-            query = query.filter(FoundItem.date_found >= from_date)
+            d0 = datetime.fromisoformat(date_from)
+            query = query.filter(FoundItem.date_found >= d0)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid date_from format. Use ISO format."
+                detail="Invalid date_from format; use ISO."
             )
-
     if date_to:
         try:
-            to_date = datetime.fromisoformat(date_to)
-            query = query.filter(FoundItem.date_found <= to_date)
+            d1 = datetime.fromisoformat(date_to)
+            query = query.filter(FoundItem.date_found <= d1)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid date_to format. Use ISO format."
+                detail="Invalid date_to format; use ISO."
             )
 
-    # Get total count
     total = query.count()
-
-    # Apply pagination
     offset = (page - 1) * limit
     items = query.offset(offset).limit(limit).all()
-
-    # Calculate pagination info
     pages = (total + limit - 1) // limit
 
     return PaginatedFoundItems(
@@ -117,7 +123,7 @@ async def get_found_items(
         total=total,
         page=page,
         per_page=limit,
-        pages=pages
+        pages=pages,
     )
 
 
@@ -125,18 +131,12 @@ async def get_found_items(
 async def get_found_item(
     item_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get specific found item details"""
-
-    item = db.query(FoundItem).filter(FoundItem.id == item_id).first()
-
+    item = db.query(FoundItem).get(item_id)
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Found item not found"
-        )
-
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     return item
 
 
@@ -145,34 +145,19 @@ async def update_found_item(
     item_id: int,
     item_update: FoundItemUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """Update found item details (owner only)"""
-
-    item = db.query(FoundItem).filter(FoundItem.id == item_id).first()
-
+    """Update found item (owner or admin)"""
+    item = db.query(FoundItem).get(item_id)
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Found item not found"
-        )
-
-    # Check ownership (or admin)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     if item.user_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to update this item"
-        )
-
-    # Update fields if provided
-    update_data = item_update.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(item, field, value)
-
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    for k, v in item_update.dict(exclude_unset=True).items():
+        setattr(item, k, v)
     item.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(item)
-
     return item
 
 
@@ -180,29 +165,17 @@ async def update_found_item(
 async def delete_found_item(
     item_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """Delete found item entry (owner only)"""
-
-    item = db.query(FoundItem).filter(FoundItem.id == item_id).first()
-
+    """Delete found item (owner or admin)"""
+    item = db.query(FoundItem).get(item_id)
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Found item not found"
-        )
-
-    # Check ownership (or admin)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     if item.user_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to delete this item"
-        )
-
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
     db.delete(item)
     db.commit()
-
-    return MessageResponse(message="Found item deleted successfully", success=True)
+    return MessageResponse(message="Deleted", success=True)
 
 
 @router.get("/my-items/", response_model=PaginatedFoundItems)
@@ -211,31 +184,19 @@ async def get_my_found_items(
     limit: int = Query(20, ge=1, le=100),
     status: Optional[str] = Query(None),
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """Get current user's found items"""
-
+    """Get current user’s items"""
     query = db.query(FoundItem).filter(FoundItem.user_id == current_user.id)
-
     if status:
+        if status == "available":
+            status = ItemStatus.ACTIVE.value
         query = query.filter(FoundItem.status == status)
-
-    # Get total count
     total = query.count()
-
-    # Apply pagination
-    offset = (page - 1) * limit
-    items = query.offset(offset).limit(limit).all()
-
-    # Calculate pagination info
+    items = query.offset((page - 1) * limit).limit(limit).all()
     pages = (total + limit - 1) // limit
-
     return PaginatedFoundItems(
-        items=items,
-        total=total,
-        page=page,
-        per_page=limit,
-        pages=pages
+        items=items, total=total, page=page, per_page=limit, pages=pages
     )
 
 
@@ -244,70 +205,59 @@ async def update_found_item_status(
     item_id: int,
     new_status: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """Update found item status (owner only)"""
-
-    item = db.query(FoundItem).filter(FoundItem.id == item_id).first()
-
+    """Update status (owner or admin)"""
+    item = db.query(FoundItem).get(item_id)
     if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Found item not found"
-        )
-
-    # Check ownership (or admin)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     if item.user_id != current_user.id and current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to update this item"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
-    # Validate status
-    valid_statuses = ["available", "claimed", "resolved"]
-    if new_status not in valid_statuses:
+    # Handle legacy “available”
+    if new_status == "available":
+        new_status = ItemStatus.ACTIVE.value
+
+    if new_status not in {e.value for e in ItemStatus}:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid status. Must be one of: {valid_statuses}"
+            detail=f"Invalid status: {new_status}"
         )
 
     item.status = new_status
     item.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(item)
-
     return item
 
 
-@router.get("/available/", response_model=PaginatedFoundItems)
-async def get_available_found_items(
+@router.get("/active/", response_model=PaginatedFoundItems)
+async def get_active_found_items(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     category: Optional[str] = Query(None),
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """Get only available (unclaimed) found items"""
-
-    query = db.query(FoundItem).filter(FoundItem.status == "available")
-
+    """Get all active items"""
+    query = db.query(FoundItem).filter(FoundItem.status == ItemStatus.ACTIVE.value)
     if category:
         query = query.filter(FoundItem.category == category)
-
-    # Get total count
     total = query.count()
-
-    # Apply pagination
-    offset = (page - 1) * limit
-    items = query.offset(offset).limit(limit).all()
-
-    # Calculate pagination info
+    items = query.offset((page - 1) * limit).limit(limit).all()
     pages = (total + limit - 1) // limit
-
     return PaginatedFoundItems(
-        items=items,
-        total=total,
-        page=page,
-        per_page=limit,
-        pages=pages
+        items=items, total=total, page=page, per_page=limit, pages=pages
     )
+
+
+@router.get("/available/", response_model=PaginatedFoundItems)
+async def get_available_found_items_legacy(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    category: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Legacy endpoint for “available”—redirects to /active/"""
+    return await get_active_found_items(page, limit, category, current_user, db)

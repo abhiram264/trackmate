@@ -102,43 +102,43 @@ async def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(refresh_data: RefreshTokenRequest, db: Session = Depends(get_db)):
-    """Refresh JWT access token"""
+# @router.post("/refresh", response_model=TokenResponse)
+# async def refresh_token(refresh_data: RefreshTokenRequest, db: Session = Depends(get_db)):
+#     """Refresh JWT access token"""
     
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate refresh token",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+#     credentials_exception = HTTPException(
+#         status_code=status.HTTP_401_UNAUTHORIZED,
+#         detail="Could not validate refresh token",
+#         headers={"WWW-Authenticate": "Bearer"},
+#     )
     
-    # Verify refresh token
-    payload = verify_token(refresh_data.refresh_token)
-    if payload is None:
-        raise credentials_exception
+#     # Verify refresh token
+#     payload = verify_token(refresh_data.refresh_token)
+#     if payload is None:
+#         raise credentials_exception
     
-    email: str = payload.get("sub")
-    if email is None:
-        raise credentials_exception
+#     email: str = payload.get("sub")
+#     if email is None:
+#         raise credentials_exception
     
-    user = db.query(User).filter(User.email == email).first()
-    if user is None or not user.is_active:
-        raise credentials_exception
+#     user = db.query(User).filter(User.email == email).first()
+#     if user is None or not user.is_active:
+#         raise credentials_exception
     
-    # Create new tokens
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
-    new_refresh_token = create_refresh_token(data={"sub": user.email})
+#     # Create new tokens
+#     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+#     access_token = create_access_token(
+#         data={"sub": user.email}, expires_delta=access_token_expires
+#     )
+#     new_refresh_token = create_refresh_token(data={"sub": user.email})
     
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=new_refresh_token,
-        token_type="bearer",
-        expires_in=settings.access_token_expire_minutes * 60,
-        user=user
-    )
+#     return TokenResponse(
+#         access_token=access_token,
+#         refresh_token=new_refresh_token,
+#         token_type="bearer",
+#         expires_in=settings.access_token_expire_minutes * 60,
+#         user=user
+#     )
 
 
 @router.get("/me", response_model=UserResponse)

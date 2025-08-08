@@ -2,7 +2,6 @@ from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
-
 class ClaimCreate(BaseModel):
     """Schema for creating claims"""
     found_item_id: int
@@ -10,13 +9,11 @@ class ClaimCreate(BaseModel):
     contact_info: str
     additional_proof: Optional[str] = None
 
-
 class ClaimUpdate(BaseModel):
     """Schema for updating claims (admin only)"""
     status: Optional[str] = None
     verification_notes: Optional[str] = None
     rejection_reason: Optional[str] = None
-
 
 class ClaimResponse(BaseModel):
     """Schema for claim response"""
@@ -35,16 +32,13 @@ class ClaimResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-
 class ClaimApproval(BaseModel):
     """Schema for claim approval"""
     approval_notes: Optional[str] = None
 
-
 class ClaimRejection(BaseModel):
     """Schema for claim rejection"""
     rejection_reason: str
-
 
 class PaginatedClaims(BaseModel):
     """Schema for paginated claims response"""

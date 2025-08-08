@@ -277,3 +277,23 @@ async def update_lost_item_status(
     db.refresh(item)
 
     return item
+
+@router.get("/admin/lost-items-by-student/", response_model=List[LostItemResponse], tags=["Admin"])
+async def get_lost_items_by_student(
+    student_id: int = Query(..., description="ID of the student/user"),
+    current_user: User = Depends(get_admin_user),  # Only admins allowed
+    db: Session = Depends(get_db),
+):
+    """
+    Admin-only: Retrieve all lost items submitted by a specific student, for claiming purposes.
+    """
+
+    items = db.query(LostItem).filter(LostItem.user_id == student_id).all()
+
+    if not items:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No lost items found for student ID {student_id}"
+        )
+
+    return items
